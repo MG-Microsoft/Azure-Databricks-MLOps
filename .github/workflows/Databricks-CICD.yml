@@ -1,7 +1,13 @@
 name: Databricks-CI-CD
 
 # Manual trigger with parameters
+
 on:
+# Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
     inputs:
       # This is the path of your notebooks in Git.  Currently, this is not recursively deploying notebooks
@@ -251,6 +257,8 @@ jobs:
   QA:
     needs: Dev
     runs-on: ubuntu-latest
+    environment:
+        name: Staging
     env:
       resourceGroupName: '${{ github.event.inputs.RESOURCE_GROUP }}-QA'
       databricksWorkspaceName: '${{ github.event.inputs.WORKSPACE_NAME }}-QA'
@@ -376,6 +384,8 @@ jobs:
   Prod:
     needs: QA
     runs-on: ubuntu-latest
+    environment:
+        name: Staging
     env:
       resourceGroupName: '${{ github.event.inputs.RESOURCE_GROUP }}-Prod'
       databricksWorkspaceName: '${{ github.event.inputs.WORKSPACE_NAME }}-Prod'
