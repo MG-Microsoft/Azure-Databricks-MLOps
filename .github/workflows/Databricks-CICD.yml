@@ -394,7 +394,7 @@ jobs:
       databricksWorkspaceName: 'Databricks-MyProject-MG-Prod'
       keyVaultName: 'Databricks-MyProject-MG-Prod'
       NotebookDeploymentPath: '/MyProject'
-      GitNotebookPath: 'notebooks/MyProject
+      GitNotebookPath: 'notebooks/MyProject'
 
     steps:
     # Show the environment variables for debugging
