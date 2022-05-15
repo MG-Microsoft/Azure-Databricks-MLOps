@@ -50,7 +50,7 @@ display(trainDF)
 # COMMAND ----------
 
 from azureml.core import Workspace
-#test3
+#test5
 subscription_id='f3f672c1-6cfc-4f72-92ae-2b1ab1c0cf69'
 tenant_id = '72f988bf-86f1-41af-91ab-2d7cd011db47'
 service_principal_clientid = dbutils.secrets.get(scope = "secret", key ="service-principal-client-id") # Service Principal ID
