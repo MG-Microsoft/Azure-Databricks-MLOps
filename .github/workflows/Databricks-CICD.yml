@@ -210,8 +210,8 @@ jobs:
       # if: ${{ github.event.inputs.MODE == 'SKIP FOR TESTING' }}
       with:
         inlineScript: |
-          az group create --location "${{ github.event.inputs.LOCATION }}" --name "${{ env.resourceGroupName }}" --unhandled-rejections=strict
-          az deployment group create --resource-group ${{ env.resourceGroupName }} --template-file $GITHUB_WORKSPACE/ARM-Templates/azuredeploy.databricks.json --parameters @$GITHUB_WORKSPACE/ARM-Templates/parameters.databricks.json --parameters workspaceName="${{ env.databricksWorkspaceName }}" --unhandled-rejections=strict
+          az group create --location 'EastUS2' --name 'Databricks-MyProject-MG'
+          az deployment group create --resource-group 'Databricks-MyProject-MG' --template-file $GITHUB_WORKSPACE/ARM-Templates/azuredeploy.databricks.json --parameters @$GITHUB_WORKSPACE/ARM-Templates/parameters.databricks.json --parameters workspaceName='Databricks-MyProject-MG'
     # Deploy Azure KeyVault
     - name: Deploy ARM Template (KeyVault)
       uses: azure/CLI@v1
@@ -227,7 +227,7 @@ jobs:
         ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
       if: ${{ github.event.inputs.MODE == 'Databricks' }}
       with:
-        keyvault: ${{ env.keyVaultName }}
+        keyvault: 'KeyVault-MyProject7'
         secrets: 'databricks-dev-ops-subscription-id,databricks-dev-ops-tenant-id,databricks-dev-ops-client-id,databricks-dev-ops-client-secret'
       id: databricksSecretAction
 
