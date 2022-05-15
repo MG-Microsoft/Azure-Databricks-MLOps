@@ -385,7 +385,7 @@ jobs:
     needs: QA
     runs-on: ubuntu-latest
     environment:
-        name: Staging
+        name: Prod
     env:
       resourceGroupName: '${{ github.event.inputs.RESOURCE_GROUP }}-Prod'
       databricksWorkspaceName: '${{ github.event.inputs.WORKSPACE_NAME }}-Prod'
