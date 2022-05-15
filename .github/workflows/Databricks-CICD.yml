@@ -33,7 +33,7 @@ on:
       LOCATION:
         description: 'Azure Region'
         required: true
-        default: 'EastUS2'
+        default: 'WestUS'
 
       # This is the name of your Azure Databricks resource
       WORKSPACE_NAME:
