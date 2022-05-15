@@ -392,7 +392,7 @@ jobs:
     env:
       resourceGroupName: 'Databricks-MyProject-MG-Prod'
       databricksWorkspaceName: 'Databricks-MyProject-MG-Prod'
-      keyVaultName: 'Databricks-MyProject-MG-Prod'
+      keyVaultName: 'KeyVault-MyProject7-Prod'
       NotebookDeploymentPath: '/MyProject'
       GitNotebookPath: 'notebooks/MyProject'
 
