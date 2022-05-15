@@ -1,0 +1,482 @@
+# Build and JAR files or such and copy to artifacts folder
+# Copy Git files to artifacts folder
+# Deploy the ARM template
+# 
+
+trigger: none
+
+parameters:
+# This is the path of your notebooks in Git.  Currently, this is not recursively deploying notebooks
+- name: GIT_NOTEBOOK_PATH
+  displayName: Notebooks Relative Path in Git
+  type: string
+  default: 'notebooks/MyProject'
+
+# This is where in your Databricks workspace your notebooks will be deployed
+# Typically this is under a Folder under the Workspace and not under a specific user's folder
+- name: NOTEBOOK_DEPLOYMENT_PATH
+  displayName: Notebooks Deployment Path to Databricks
+  type: string
+  default: '/MyProject'
+
+# This resource group for the Databricks workspace and KeyVault
+- name: RESOURCE_GROUP
+  displayName: Resource Group Name
+  type: string
+  default: 'Databricks-MyProject'
+
+# The Azure region to which to deploy your resources
+- name: LOCATION
+  displayName: Azure Region
+  type: string
+  default: 'EastUS2'
+  values:
+  - EastUS
+  - EastUS2
+  - Add-others-here
+
+# This is the name of your Azure Databricks resource
+- name: WORKSPACE_NAME
+  displayName: Databricks workspace name
+  type: string
+  default: 'Databricks-MyProject'
+
+# This is a KeyVault for holding the Service Principal to make Databricks API calls and to hold Databricks KeyVault backed Secrets
+- name: KEY_VAULT_NAME
+  displayName: KeyVault name
+  type: string
+  default: 'KeyVault-MyProject'
+
+# This is the subscription the Databricks workspace and KeyVault will be created in
+- name: SUBSCRIPTION_ID
+  displayName: Azure Subscription Id
+  type: string
+  default: '00000000-0000-0000-0000-000000000000'
+
+# NOTE: You could make this a variable and then change the name to append the environment parameter above.  You would need to create a corrisponding service connection
+# e.g. If you connection is named "MyConnection", you would have MyConnection-Dev (for dev subscription), MyConnection-QA (etc...)
+- name: RESOURCE_MANAGER_CONNECTION
+  displayName: Azure Resource Connection Name
+  type: string
+  default: 'Microsoft Azure Adam Paternostro(00000000-0000-0000-0000-000000000000)'
+
+# Inialize the system
+# Note: We only want to run the KeyVault ARM template once.  If you keep re-running, then you will OVERWRITE your values
+- name: MODE
+  displayName: Deployment Mode
+  type: string
+  default: 'Databricks'
+  values:
+  - Databricks
+  - Initialize-KeyVault
+
+stages:
+#############################################################
+# Build the code
+# Currently this is not building and JAR files, but you would do that here
+# This is packaging up the files from Git to the Artifacts files
+#############################################################
+- stage: Build
+  jobs:
+  - job: JobBuild
+    displayName: 'Job Build'
+    variables:
+      solution: '**/*.sln'
+      buildPlatform: 'Any CPU'
+      buildConfiguration: 'Release'
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    steps:
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifact: ARM-Templates'
+        inputs:
+          PathtoPublish: '$(Build.Repository.LocalPath)/ARM-Templates'
+          ArtifactName: 'ARM-Templates'
+
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifact: Databricks-Clusters'
+        inputs:
+          PathtoPublish: '$(Build.Repository.LocalPath)/clusters'
+          ArtifactName: 'clusters'
+
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifact: Databricks-Notebooks'
+        inputs:
+          PathtoPublish: '$(Build.Repository.LocalPath)/notebooks'
+          ArtifactName: 'notebooks'
+
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifact: Databricks-Jobs'
+        inputs:
+          PathtoPublish: '$(Build.Repository.LocalPath)/jobs'
+          ArtifactName: 'jobs'
+
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifact: Databricks-Init-Scripts'
+        inputs:
+          PathtoPublish: '$(Build.Repository.LocalPath)/init-scripts'
+          ArtifactName: 'init-scripts'
+
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifact: Databricks-Deployment-Scripts'
+        inputs:
+          PathtoPublish: '$(Build.Repository.LocalPath)/deployment-scripts'
+          ArtifactName: 'deployment-scripts'
+
+
+#############################################################
+# Deploy to Dev
+#############################################################
+- stage: Dev
+  jobs:
+  - deployment: JobDev
+    displayName: 'Job Dev'
+    environment: 'Dev'
+    variables:
+      resourceGroupName: '${{ parameters.RESOURCE_GROUP }}-Dev'
+      databricksWorkspaceName: '${{ parameters.WORKSPACE_NAME }}-Dev'
+      keyVaultName: '${{ parameters.KEY_VAULT_NAME }}-Dev'
+
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    strategy:
+      runOnce:
+        deploy:  
+          steps:
+            - checkout: none
+
+            ### Show all the environment variables ###
+            - task: PowerShell@2
+              # condition: (alway run)
+              displayName: "Current Environment Variables"
+              inputs:
+                targetType: 'inline'
+                script: 'dir env:'
+
+            ### Deploy Databricks Workspace ###
+            - task: AzureResourceManagerTemplateDeployment@3
+              # condition: (alway run)
+              displayName: "Deploy Databricks ARM Template"
+              inputs:
+                deploymentScope: 'Resource Group'
+                azureResourceManagerConnection: ${{ parameters.RESOURCE_MANAGER_CONNECTION}}
+                subscriptionId: ${{ parameters.SUBSCRIPTION_ID }}
+                action: 'Create Or Update Resource Group'
+                resourceGroupName: $(resourceGroupName)
+                location: ${{ parameters.LOCATION }}
+                templateLocation: 'Linked artifact'
+                csmFile: '$(Pipeline.Workspace)/ARM-Templates/azuredeploy.databricks.json'
+                csmParametersFile: '$(Pipeline.Workspace)/ARM-Templates/parameters.databricks.json'
+                overrideParameters: '-workspaceName $(databricksWorkspaceName)'
+                deploymentMode: 'Incremental'
+
+            ### Show Azure KeyVault ###
+            - task: AzureResourceManagerTemplateDeployment@3
+              condition: eq('${{ parameters.MODE }}', 'Initialize-KeyVault')
+              displayName: "Deploy KeyVault ARM Template"
+              inputs:
+                deploymentScope: 'Resource Group'
+                azureResourceManagerConnection: ${{ parameters.RESOURCE_MANAGER_CONNECTION}}
+                subscriptionId: ${{ parameters.SUBSCRIPTION_ID }}
+                action: 'Create Or Update Resource Group'
+                resourceGroupName: $(resourceGroupName)
+                location: ${{ parameters.LOCATION }}
+                templateLocation: 'Linked artifact'
+                csmFile: '$(Pipeline.Workspace)/ARM-Templates/azuredeploy.keyvault.json'
+                csmParametersFile: '$(Pipeline.Workspace)/ARM-Templates/parameters.keyvault.json'
+                overrideParameters: '-keyVaultName $(keyVaultName)'
+                deploymentMode: 'Incremental'
+
+            ### Download KeyVault Secrets ###
+            - task: AzureKeyVault@1
+              condition: eq('${{ parameters.MODE }}', 'Databricks')
+              displayName: "Download KeyVault Secrets"
+              inputs:
+                azureSubscription: ${{ parameters.RESOURCE_MANAGER_CONNECTION}}
+                KeyVaultName:  '$(keyVaultName)'
+                SecretsFilter: 'databricks-dev-ops-subscription-id,databricks-dev-ops-tenant-id,databricks-dev-ops-client-id,databricks-dev-ops-client-secret'
+                RunAsPreJob: false
+
+            ### Deploy your Databricks Init Scripts to dbfa:/init-scripts folder on DBFS ###
+            - task: Bash@3
+              condition: eq('${{ parameters.MODE }}', 'Databricks')
+              displayName: "Deploy Databricks Init Scripts"
+              # Only run if KeyVault has values set
+              # condition: ne($(databricks-dev-ops-tenant-id), 'PLEASE_SET_ME (e.g. 00000000-0000-0000-0000-000000000000)')
+              inputs:
+                filePath: '$(Pipeline.Workspace)/deployment-scripts/deploy-init-scripts.sh'
+                arguments: '$(databricks-dev-ops-tenant-id) $(databricks-dev-ops-client-id) $(databricks-dev-ops-client-secret) $(databricks-dev-ops-subscription-id) $(resourceGroupName) $(databricksWorkspaceName)'
+                workingDirectory: '$(Pipeline.Workspace)/init-scripts'
+
+            ### Deploy your Databricks Clusters (and then Stop them since a deployment starts them) ###
+            - task: Bash@3
+              condition: eq('${{ parameters.MODE }}', 'Databricks')
+              displayName: "Deploy Databricks Clusters"
+              # Only run if KeyVault has values set
+              # condition: ne($(databricks-dev-ops-tenant-id), 'PLEASE_SET_ME (e.g. 00000000-0000-0000-0000-000000000000)')
+              inputs:
+                filePath: '$(Pipeline.Workspace)/deployment-scripts/deploy-clusters.sh'
+                arguments: '$(databricks-dev-ops-tenant-id) $(databricks-dev-ops-client-id) $(databricks-dev-ops-client-secret) $(databricks-dev-ops-subscription-id) $(resourceGroupName) $(databricksWorkspaceName)'
+                workingDirectory: '$(Pipeline.Workspace)/clusters'
+
+            ### Deploy your Databricks Notebooks ###
+            - task: Bash@3
+              condition: eq('${{ parameters.MODE }}', 'Databricks')
+              displayName: "Deploy Databricks Notebooks"
+              # Only run if KeyVault has values set
+              # condition: ne($(databricks-dev-ops-tenant-id), 'PLEASE_SET_ME (e.g. 00000000-0000-0000-0000-000000000000)')
+              inputs:
+                filePath: '$(Pipeline.Workspace)/deployment-scripts/deploy-notebooks.sh'
+                arguments: '$(databricks-dev-ops-tenant-id) $(databricks-dev-ops-client-id) $(databricks-dev-ops-client-secret) $(databricks-dev-ops-subscription-id) $(resourceGroupName) $(databricksWorkspaceName) ${{ parameters.NOTEBOOK_DEPLOYMENT_PATH }}'
+                workingDirectory: '$(Pipeline.Workspace)/${{ parameters.GIT_NOTEBOOK_PATH }}'
+
+            ### Deploy your Databricks Jobs ###
+            - task: Bash@3
+              condition: eq('${{ parameters.MODE }}', 'Databricks')
+              displayName: "Deploy Databricks Jobs"
+              # Only run if KeyVault has values set
+              # condition: ne($(databricks-dev-ops-tenant-id), 'PLEASE_SET_ME (e.g. 00000000-0000-0000-0000-000000000000)')
+              inputs:
+                filePath: '$(Pipeline.Workspace)/deployment-scripts/deploy-jobs.sh'
+                arguments: '$(databricks-dev-ops-tenant-id) $(databricks-dev-ops-client-id) $(databricks-dev-ops-client-secret) $(databricks-dev-ops-subscription-id) $(resourceGroupName) $(databricksWorkspaceName)'
+                workingDirectory: '$(Pipeline.Workspace)/jobs'
+
+
+#############################################################
+# Deploy to QA
+#############################################################
+- stage: QA
+  jobs:
+  - deployment: JobQA
+    displayName: 'Job QA'
+    environment: 'QA'
+    variables:
+      resourceGroupName: '${{ parameters.RESOURCE_GROUP }}-QA'
+      databricksWorkspaceName: '${{ parameters.WORKSPACE_NAME }}-QA'
+      keyVaultName: '${{ parameters.KEY_VAULT_NAME }}-QA'
+
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    strategy:
+      runOnce:
+        deploy:  
+          steps:
+            - checkout: none
+
+            ### Show all the environment variables ###
+            - task: PowerShell@2
+              # condition: (alway run)
+              displayName: "Current Environment Variables"
+              inputs:
+                targetType: 'inline'
+                script: 'dir env:'
+
+            ### Deploy Databricks Workspace ###
+            - task: AzureResourceManagerTemplateDeployment@3
+              # condition: (alway run)
+              displayName: "Deploy Databricks ARM Template"
+              inputs:
+                deploymentScope: 'Resource Group'
+                azureResourceManagerConnection: ${{ parameters.RESOURCE_MANAGER_CONNECTION}}
+                subscriptionId: ${{ parameters.SUBSCRIPTION_ID }}
+                action: 'Create Or Update Resource Group'
+                resourceGroupName: $(resourceGroupName)
+                location: ${{ parameters.LOCATION }}
+                templateLocation: 'Linked artifact'
+                csmFile: '$(Pipeline.Workspace)/ARM-Templates/azuredeploy.databricks.json'
+                csmParametersFile: '$(Pipeline.Workspace)/ARM-Templates/parameters.databricks.json'
+                overrideParameters: '-workspaceName $(databricksWorkspaceName)'
+                deploymentMode: 'Incremental'
+
+            ### Show Azure KeyVault ###
+            - task: AzureResourceManagerTemplateDeployment@3
+              condition: eq('${{ parameters.MODE }}', 'Initialize-KeyVault')
+              displayName: "Deploy KeyVault ARM Template"
+              inputs:
+                deploymentScope: 'Resource Group'
+                azureResourceManagerConnection: ${{ parameters.RESOURCE_MANAGER_CONNECTION}}
+                subscriptionId: ${{ parameters.SUBSCRIPTION_ID }}
+                action: 'Create Or Update Resource Group'
+                resourceGroupName: $(resourceGroupName)
+                location: ${{ parameters.LOCATION }}
+                templateLocation: 'Linked artifact'
+                csmFile: '$(Pipeline.Workspace)/ARM-Templates/azuredeploy.keyvault.json'
+                csmParametersFile: '$(Pipeline.Workspace)/ARM-Templates/parameters.keyvault.json'
+                overrideParameters: '-keyVaultName $(keyVaultName)'
+                deploymentMode: 'Incremental'
+
+            ### Download KeyVault Secrets ###
+            - task: AzureKeyVault@1
+              condition: eq('${{ parameters.MODE }}', 'Databricks')
+              displayName: "Download KeyVault Secrets"
+              inputs:
+                azureSubscription: ${{ parameters.RESOURCE_MANAGER_CONNECTION}}
+                KeyVaultName:  '$(keyVaultName)'
+                SecretsFilter: 'databricks-dev-ops-subscription-id,databricks-dev-ops-tenant-id,databricks-dev-ops-client-id,databricks-dev-ops-client-secret'
+                RunAsPreJob: false
+
+            ### Deploy your Databricks Init Scripts to dbfa:/init-scripts folder on DBFS ###
+            - task: Bash@3
+              condition: eq('${{ parameters.MODE }}', 'Databricks')
+              displayName: "Deploy Databricks Init Scripts"
+              # Only run if KeyVault has values set
+              # condition: ne($(databricks-dev-ops-tenant-id), 'PLEASE_SET_ME (e.g. 00000000-0000-0000-0000-000000000000)')
+              inputs:
+                filePath: '$(Pipeline.Workspace)/deployment-scripts/deploy-init-scripts.sh'
+                arguments: '$(databricks-dev-ops-tenant-id) $(databricks-dev-ops-client-id) $(databricks-dev-ops-client-secret) $(databricks-dev-ops-subscription-id) $(resourceGroupName) $(databricksWorkspaceName)'
+                workingDirectory: '$(Pipeline.Workspace)/init-scripts'
+
+            ### Deploy your Databricks Clusters (and then Stop them since a deployment starts them) ###
+            - task: Bash@3
+              condition: eq('${{ parameters.MODE }}', 'Databricks')
+              displayName: "Deploy Databricks Clusters"
+              # Only run if KeyVault has values set
+              # condition: ne($(databricks-dev-ops-tenant-id), 'PLEASE_SET_ME (e.g. 00000000-0000-0000-0000-000000000000)')
+              inputs:
+                filePath: '$(Pipeline.Workspace)/deployment-scripts/deploy-clusters.sh'
+                arguments: '$(databricks-dev-ops-tenant-id) $(databricks-dev-ops-client-id) $(databricks-dev-ops-client-secret) $(databricks-dev-ops-subscription-id) $(resourceGroupName) $(databricksWorkspaceName)'
+                workingDirectory: '$(Pipeline.Workspace)/clusters'
+
+            ### Deploy your Databricks Notebooks ###
+            - task: Bash@3
+              condition: eq('${{ parameters.MODE }}', 'Databricks')
+              displayName: "Deploy Databricks Notebooks"
+              # Only run if KeyVault has values set
+              # condition: ne($(databricks-dev-ops-tenant-id), 'PLEASE_SET_ME (e.g. 00000000-0000-0000-0000-000000000000)')
+              inputs:
+                filePath: '$(Pipeline.Workspace)/deployment-scripts/deploy-notebooks.sh'
+                arguments: '$(databricks-dev-ops-tenant-id) $(databricks-dev-ops-client-id) $(databricks-dev-ops-client-secret) $(databricks-dev-ops-subscription-id) $(resourceGroupName) $(databricksWorkspaceName) ${{ parameters.NOTEBOOK_DEPLOYMENT_PATH }}'
+                workingDirectory: '$(Pipeline.Workspace)/${{ parameters.GIT_NOTEBOOK_PATH }}'
+
+            ### Deploy your Databricks Jobs ###
+            - task: Bash@3
+              condition: eq('${{ parameters.MODE }}', 'Databricks')
+              displayName: "Deploy Databricks Jobs"
+              # Only run if KeyVault has values set
+              # condition: ne($(databricks-dev-ops-tenant-id), 'PLEASE_SET_ME (e.g. 00000000-0000-0000-0000-000000000000)')
+              inputs:
+                filePath: '$(Pipeline.Workspace)/deployment-scripts/deploy-jobs.sh'
+                arguments: '$(databricks-dev-ops-tenant-id) $(databricks-dev-ops-client-id) $(databricks-dev-ops-client-secret) $(databricks-dev-ops-subscription-id) $(resourceGroupName) $(databricksWorkspaceName)'
+                workingDirectory: '$(Pipeline.Workspace)/jobs'
+
+
+#############################################################
+# Deploy to Prod
+#############################################################
+- stage: Prod
+  jobs:
+  - deployment: JobProd
+    displayName: 'Job Prod'
+    environment: 'Prod'
+    variables:
+      resourceGroupName: '${{ parameters.RESOURCE_GROUP }}-Prod'
+      databricksWorkspaceName: '${{ parameters.WORKSPACE_NAME }}-Prod'
+      keyVaultName: '${{ parameters.KEY_VAULT_NAME }}-Prod'
+
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    strategy:
+      runOnce:
+        deploy:  
+          steps:
+            - checkout: none
+
+            ### Show all the environment variables ###
+            - task: PowerShell@2
+              # condition: (alway run)
+              displayName: "Current Environment Variables"
+              inputs:
+                targetType: 'inline'
+                script: 'dir env:'
+
+            ### Deploy Databricks Workspace ###
+            - task: AzureResourceManagerTemplateDeployment@3
+              # condition: (alway run)
+              displayName: "Deploy Databricks ARM Template"
+              inputs:
+                deploymentScope: 'Resource Group'
+                azureResourceManagerConnection: ${{ parameters.RESOURCE_MANAGER_CONNECTION}}
+                subscriptionId: ${{ parameters.SUBSCRIPTION_ID }}
+                action: 'Create Or Update Resource Group'
+                resourceGroupName: $(resourceGroupName)
+                location: ${{ parameters.LOCATION }}
+                templateLocation: 'Linked artifact'
+                csmFile: '$(Pipeline.Workspace)/ARM-Templates/azuredeploy.databricks.json'
+                csmParametersFile: '$(Pipeline.Workspace)/ARM-Templates/parameters.databricks.json'
+                overrideParameters: '-workspaceName $(databricksWorkspaceName)'
+                deploymentMode: 'Incremental'
+
+            ### Show Azure KeyVault ###
+            - task: AzureResourceManagerTemplateDeployment@3
+              condition: eq('${{ parameters.MODE }}', 'Initialize-KeyVault')
+              displayName: "Deploy KeyVault ARM Template"
+              inputs:
+                deploymentScope: 'Resource Group'
+                azureResourceManagerConnection: ${{ parameters.RESOURCE_MANAGER_CONNECTION}}
+                subscriptionId: ${{ parameters.SUBSCRIPTION_ID }}
+                action: 'Create Or Update Resource Group'
+                resourceGroupName: $(resourceGroupName)
+                location: ${{ parameters.LOCATION }}
+                templateLocation: 'Linked artifact'
+                csmFile: '$(Pipeline.Workspace)/ARM-Templates/azuredeploy.keyvault.json'
+                csmParametersFile: '$(Pipeline.Workspace)/ARM-Templates/parameters.keyvault.json'
+                overrideParameters: '-keyVaultName $(keyVaultName)'
+                deploymentMode: 'Incremental'
+
+            ### Download KeyVault Secrets ###
+            - task: AzureKeyVault@1
+              condition: eq('${{ parameters.MODE }}', 'Databricks')
+              displayName: "Download KeyVault Secrets"
+              inputs:
+                azureSubscription: ${{ parameters.RESOURCE_MANAGER_CONNECTION}}
+                KeyVaultName:  '$(keyVaultName)'
+                SecretsFilter: 'databricks-dev-ops-subscription-id,databricks-dev-ops-tenant-id,databricks-dev-ops-client-id,databricks-dev-ops-client-secret'
+                RunAsPreJob: false
+
+            ### Deploy your Databricks Init Scripts to dbfa:/init-scripts folder on DBFS ###
+            - task: Bash@3
+              condition: eq('${{ parameters.MODE }}', 'Databricks')
+              displayName: "Deploy Databricks Init Scripts"
+              # Only run if KeyVault has values set
+              # condition: ne($(databricks-dev-ops-tenant-id), 'PLEASE_SET_ME (e.g. 00000000-0000-0000-0000-000000000000)')
+              inputs:
+                filePath: '$(Pipeline.Workspace)/deployment-scripts/deploy-init-scripts.sh'
+                arguments: '$(databricks-dev-ops-tenant-id) $(databricks-dev-ops-client-id) $(databricks-dev-ops-client-secret) $(databricks-dev-ops-subscription-id) $(resourceGroupName) $(databricksWorkspaceName)'
+                workingDirectory: '$(Pipeline.Workspace)/init-scripts'
+
+            ### Deploy your Databricks Clusters (and then Stop them since a deployment starts them) ###
+            - task: Bash@3
+              condition: eq('${{ parameters.MODE }}', 'Databricks')
+              displayName: "Deploy Databricks Clusters"
+              # Only run if KeyVault has values set
+              # condition: ne($(databricks-dev-ops-tenant-id), 'PLEASE_SET_ME (e.g. 00000000-0000-0000-0000-000000000000)')
+              inputs:
+                filePath: '$(Pipeline.Workspace)/deployment-scripts/deploy-clusters.sh'
+                arguments: '$(databricks-dev-ops-tenant-id) $(databricks-dev-ops-client-id) $(databricks-dev-ops-client-secret) $(databricks-dev-ops-subscription-id) $(resourceGroupName) $(databricksWorkspaceName)'
+                workingDirectory: '$(Pipeline.Workspace)/clusters'
+
+            ### Deploy your Databricks Notebooks ###
+            - task: Bash@3
+              condition: eq('${{ parameters.MODE }}', 'Databricks')
+              displayName: "Deploy Databricks Notebooks"
+              # Only run if KeyVault has values set
+              # condition: ne($(databricks-dev-ops-tenant-id), 'PLEASE_SET_ME (e.g. 00000000-0000-0000-0000-000000000000)')
+              inputs:
+                filePath: '$(Pipeline.Workspace)/deployment-scripts/deploy-notebooks.sh'
+                arguments: '$(databricks-dev-ops-tenant-id) $(databricks-dev-ops-client-id) $(databricks-dev-ops-client-secret) $(databricks-dev-ops-subscription-id) $(resourceGroupName) $(databricksWorkspaceName) ${{ parameters.NOTEBOOK_DEPLOYMENT_PATH }}'
+                workingDirectory: '$(Pipeline.Workspace)/${{ parameters.GIT_NOTEBOOK_PATH }}'
+
+            ### Deploy your Databricks Jobs ###
+            - task: Bash@3
+              condition: eq('${{ parameters.MODE }}', 'Databricks')
+              displayName: "Deploy Databricks Jobs"
+              # Only run if KeyVault has values set
+              # condition: ne($(databricks-dev-ops-tenant-id), 'PLEASE_SET_ME (e.g. 00000000-0000-0000-0000-000000000000)')
+              inputs:
+                filePath: '$(Pipeline.Workspace)/deployment-scripts/deploy-jobs.sh'
+                arguments: '$(databricks-dev-ops-tenant-id) $(databricks-dev-ops-client-id) $(databricks-dev-ops-client-secret) $(databricks-dev-ops-subscription-id) $(resourceGroupName) $(databricksWorkspaceName)'
+                workingDirectory: '$(Pipeline.Workspace)/jobs'
