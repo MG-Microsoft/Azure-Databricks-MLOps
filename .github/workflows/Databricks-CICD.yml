@@ -371,7 +371,7 @@ jobs:
     - name: Deploy Databricks Notebooks
       #if: ${{ github.event.inputs.MODE == 'Databricks' }}
       run: |
-        cd "$GITHUB_WORKSPACE/${{ env.GitNotebookPath }}"
+        cd "$GITHUB_WORKSPACE/notebooks/MyProject"
         chmod +x $GITHUB_WORKSPACE/deployment-scripts/deploy-notebooks.sh
         $GITHUB_WORKSPACE/deployment-scripts/deploy-notebooks.sh ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-tenant-id }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-client-id }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-client-secret }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-subscription-id }} ${{ env.resourceGroupName }} ${{ env.databricksWorkspaceName }} ${{ env.NotebookDeploymentPath }}
     # Deploy Databricks Jobs
@@ -500,7 +500,7 @@ jobs:
     - name: Deploy Databricks Notebooks
       #if: ${{ github.event.inputs.MODE == 'Databricks' }}
       run: |
-        cd "$GITHUB_WORKSPACE/${{ env.GitNotebookPath }}"
+        cd "$GITHUB_WORKSPACE/notebooks/MyProject"
         chmod +x $GITHUB_WORKSPACE/deployment-scripts/deploy-notebooks.sh
         $GITHUB_WORKSPACE/deployment-scripts/deploy-notebooks.sh ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-tenant-id }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-client-id }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-client-secret }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-subscription-id }} ${{ env.resourceGroupName }} ${{ env.databricksWorkspaceName }} ${{ env.NotebookDeploymentPath }}
     # Deploy Databricks Jobs
