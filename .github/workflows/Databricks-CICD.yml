@@ -185,6 +185,7 @@ jobs:
       with:
         keyvault: ${{ env.keyVaultName }}
         secrets: 'databricks-dev-ops-subscription-id,databricks-dev-ops-tenant-id,databricks-dev-ops-client-id,databricks-dev-ops-client-secret'
+        ACTIONS_ALLOW_UNSECURE_COMMANDS: true
       id: databricksSecretAction
 
     # Deploy your Databricks Init Scripts to dbfa:/init-scripts folder on DBFS
@@ -285,6 +286,7 @@ jobs:
       with:
         keyvault: ${{ env.keyVaultName }}
         secrets: 'databricks-dev-ops-subscription-id,databricks-dev-ops-tenant-id,databricks-dev-ops-client-id,databricks-dev-ops-client-secret'
+        ACTIONS_ALLOW_UNSECURE_COMMANDS: true
       id: databricksSecretAction
 
     # Deploy your Databricks Init Scripts to dbfa:/init-scripts folder on DBFS
@@ -385,6 +387,7 @@ jobs:
       with:
         keyvault: ${{ env.keyVaultName }}
         secrets: 'databricks-dev-ops-subscription-id,databricks-dev-ops-tenant-id,databricks-dev-ops-client-id,databricks-dev-ops-client-secret'
+        ACTIONS_ALLOW_UNSECURE_COMMANDS: true
       id: databricksSecretAction
 
     # Deploy your Databricks Init Scripts to dbfa:/init-scripts folder on DBFS
