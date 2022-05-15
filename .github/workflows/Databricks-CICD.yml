@@ -233,7 +233,7 @@ jobs:
 
     # Deploy your Databricks Init Scripts to dbfa:/init-scripts folder on DBFS
     - name:  Deploy your Databricks Init Scripts to dbfa:/init-scripts folder on DBFS
-      if: ${{ github.event.inputs.MODE == 'Databricks' }}
+    #  if: ${{ github.event.inputs.MODE == 'Databricks' }}
       run: |
         cd "$GITHUB_WORKSPACE/init-scripts"
         chmod +x $GITHUB_WORKSPACE/deployment-scripts/deploy-init-scripts.sh
