@@ -135,6 +135,8 @@ jobs:
       resourceGroupName: 'Databricks-MyProject-MG-Dev'
       databricksWorkspaceName: 'Databricks-MyProject-MG-Dev'
       keyVaultName: 'KeyVault-MyProject7-Dev'
+      NotebookDeploymentPath: '/MyProject'
+      GitNotebookPath: 'notebooks/MyProject'
 
     steps:
     # Show the environment variables for debugging
@@ -240,9 +242,9 @@ jobs:
     - name: Deploy Databricks Notebooks
       #if: ${{ github.event.inputs.MODE == 'Databricks' }}
       run: |
-        cd "$GITHUB_WORKSPACE/${{ github.event.inputs.GIT_NOTEBOOK_PATH }}"
+        cd "$GITHUB_WORKSPACE/notebooks/MyProject"
         chmod +x $GITHUB_WORKSPACE/deployment-scripts/deploy-notebooks.sh
-        $GITHUB_WORKSPACE/deployment-scripts/deploy-notebooks.sh ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-tenant-id }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-client-id }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-client-secret }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-subscription-id }} ${{ env.resourceGroupName }} ${{ env.databricksWorkspaceName }} ${{ github.event.inputs.NOTEBOOK_DEPLOYMENT_PATH }}
+        $GITHUB_WORKSPACE/deployment-scripts/deploy-notebooks.sh ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-tenant-id }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-client-id }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-client-secret }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-subscription-id }} ${{ env.resourceGroupName }} ${{ env.databricksWorkspaceName }} ${{ env.NotebookDeploymentPath }}
     # Deploy Databricks Jobs
     - name: Deploy Databricks Jobs
       #if: ${{ github.event.inputs.MODE == 'Databricks' }}
@@ -262,6 +264,8 @@ jobs:
       resourceGroupName: 'Databricks-MyProject-MG-QA'
       databricksWorkspaceName: 'Databricks-MyProject-MG-QA'
       keyVaultName: 'KeyVault-MyProject7-QA'
+      NotebookDeploymentPath: '/MyProject'
+      GitNotebookPath: 'notebooks/MyProject'
 
     steps:
     # Show the environment variables for debugging
@@ -367,9 +371,9 @@ jobs:
     - name: Deploy Databricks Notebooks
       #if: ${{ github.event.inputs.MODE == 'Databricks' }}
       run: |
-        cd "$GITHUB_WORKSPACE/${{ github.event.inputs.GIT_NOTEBOOK_PATH }}"
+        cd "$GITHUB_WORKSPACE/${{ env.GitNotebookPath }}"
         chmod +x $GITHUB_WORKSPACE/deployment-scripts/deploy-notebooks.sh
-        $GITHUB_WORKSPACE/deployment-scripts/deploy-notebooks.sh ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-tenant-id }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-client-id }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-client-secret }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-subscription-id }} ${{ env.resourceGroupName }} ${{ env.databricksWorkspaceName }} ${{ github.event.inputs.NOTEBOOK_DEPLOYMENT_PATH }}
+        $GITHUB_WORKSPACE/deployment-scripts/deploy-notebooks.sh ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-tenant-id }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-client-id }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-client-secret }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-subscription-id }} ${{ env.resourceGroupName }} ${{ env.databricksWorkspaceName }} ${{ env.NotebookDeploymentPath }}
     # Deploy Databricks Jobs
     - name: Deploy Databricks Jobs
       #if: ${{ github.event.inputs.MODE == 'Databricks' }}
@@ -389,6 +393,8 @@ jobs:
       resourceGroupName: 'Databricks-MyProject-MG-Prod'
       databricksWorkspaceName: 'Databricks-MyProject-MG-Prod'
       keyVaultName: 'Databricks-MyProject-MG-Prod'
+      NotebookDeploymentPath: '/MyProject'
+      GitNotebookPath: 'notebooks/MyProject
 
     steps:
     # Show the environment variables for debugging
@@ -494,9 +500,9 @@ jobs:
     - name: Deploy Databricks Notebooks
       #if: ${{ github.event.inputs.MODE == 'Databricks' }}
       run: |
-        cd "$GITHUB_WORKSPACE/${{ github.event.inputs.GIT_NOTEBOOK_PATH }}"
+        cd "$GITHUB_WORKSPACE/${{ env.GitNotebookPath }}"
         chmod +x $GITHUB_WORKSPACE/deployment-scripts/deploy-notebooks.sh
-        $GITHUB_WORKSPACE/deployment-scripts/deploy-notebooks.sh ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-tenant-id }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-client-id }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-client-secret }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-subscription-id }} ${{ env.resourceGroupName }} ${{ env.databricksWorkspaceName }} ${{ github.event.inputs.NOTEBOOK_DEPLOYMENT_PATH }}
+        $GITHUB_WORKSPACE/deployment-scripts/deploy-notebooks.sh ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-tenant-id }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-client-id }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-client-secret }} ${{ steps.databricksSecretAction.outputs.databricks-dev-ops-subscription-id }} ${{ env.resourceGroupName }} ${{ env.databricksWorkspaceName }} ${{ env.NotebookDeploymentPath }}
     # Deploy Databricks Jobs
     - name: Deploy Databricks Jobs
       #if: ${{ github.event.inputs.MODE == 'Databricks' }}
