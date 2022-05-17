@@ -155,6 +155,10 @@ with mlflow.start_run():
 
 # COMMAND ----------
 
+run_id
+
+# COMMAND ----------
+
 # MAGIC %md # Register the model with the MLflow Model Registry API
 # MAGIC 
 # MAGIC Now that a forecasting model has been trained and tracked with MLflow, the next step is to register it with the MLflow Model Registry. You can register and manage models using the MLflow UI or the MLflow API .
