@@ -40,6 +40,10 @@
 
 # COMMAND ----------
 
+#Change-test
+
+# COMMAND ----------
+
 import pandas as pd
 wind_farm_data = pd.read_csv("https://github.com/dbczumar/model-registry-demo-notebook/raw/master/dataset/windfarm_data.csv", index_col=0)
 
