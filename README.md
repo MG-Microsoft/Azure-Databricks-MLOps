@@ -1,1 +1,1 @@
-![alt tag](https://raw.githubusercontent.com/AdamPaternostro/Azure-Databricks-Dev-Ops/master/images/databricks.jpg)
+![alt tag](https://github.com/MG-Microsoft/Azure-Databricks-MLOps/blob/main/images/databricks.jpg)
