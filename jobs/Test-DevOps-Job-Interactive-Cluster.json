@@ -4,7 +4,7 @@
     "email_notifications": {},
     "timeout_seconds": 0,
     "notebook_task": {
-        "notebook_path": "/MyProject/Scoring",
+        "notebook_path": "/MyProject/Scoring.py",
         "revision_timestamp": 0
     },
     "max_concurrent_runs": 1
