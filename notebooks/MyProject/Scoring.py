@@ -68,7 +68,3 @@ def get_weather_and_forecast():
   return weather_and_forecast.drop(columns="power"), past_power_output["power"]
 
 forecast_power(model_name, dbutils.widgets.get("Model Stage"))
-
-# COMMAND ----------
-
-
