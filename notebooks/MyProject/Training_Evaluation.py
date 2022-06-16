@@ -40,8 +40,7 @@
 
 # COMMAND ----------
 
-#Dry-Run
-
+# I am changing the training code for a better version
 
 # COMMAND ----------
 
